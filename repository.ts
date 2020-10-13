@@ -272,14 +272,6 @@ export class AzureGermlinFetchContext extends FetchContext<AzureGermlinFetch, Az
     }
 }
 
-
-const test = () => {
-    const cl = new FetchContext<AzureCosmosFetch, AzureFetchEntityMetaData>();
-
-
-
-}
-
 export interface IDb {
 }
 
