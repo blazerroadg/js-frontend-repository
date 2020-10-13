@@ -19,7 +19,7 @@ export class DefaultEntity implements IEntity {
     partitionKey: string;
     status: number;
     ok: boolean;
-    constructor(id: string, partitionKey: string, status: number, ok: boolean) {
+    constructor(id?: string, partitionKey?: string, status?: number, ok?: boolean) {
         this.id = id;
         this.partitionKey = partitionKey;
         this.status = status;
