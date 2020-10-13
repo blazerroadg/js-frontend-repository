@@ -126,6 +126,31 @@ export abstract class AzureCosmosRepository<TEntity extends IEntity> implements 
         return null;
     }
 
+    async innerMap(response: Response, entity: TEntity, entities: Array<TEntity>): Promise<Array<TEntity>> {
+        if (!response.ok || response.status === 304) {
+            entity.status = response.status;
+            entity.ok = response.ok;
+            entities.push(entity);
+            return entities;
+        }
+        var resData = await response.json();
+        if (!resData || !resData.Documents || !Array.isArray(resData.Documents)) {
+            entity.status = 501;
+            entities.push(entity);
+            return entities;
+        }
+
+        const datas = resData.Documents;
+        for (let index = 0; index < datas.length; index++) {
+            const rowEntity = { ...entity }
+            for (const key in rowEntity) {
+                rowEntity[key] = datas[index][key]
+            }
+            entities.push(rowEntity)
+        }
+        return entities;
+    }
+
     abstract map(response: Response): Promise<Array<TEntity>>;
 
 }
