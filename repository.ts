@@ -325,10 +325,9 @@ export interface IService<TEntity extends IEntity> {
     query(context: QueryContext): Promise<Array<TEntity>>;
     add(entity: TEntity): Promise<TEntity>;
     update(entity: TEntity): Promise<TEntity>;
-    map(response: Response): Promise<Array<TEntity>>;
 }
 
-export abstract class BaseSerivce<TEntity extends IEntity, TRepository extends IRepository<TEntity>> implements IService<TEntity>
+export  class BaseSerivce<TEntity extends IEntity, TRepository extends IRepository<TEntity>> implements IService<TEntity>
 {
     repository: TRepository
     constructor(repository: TRepository) {
@@ -350,7 +349,6 @@ export abstract class BaseSerivce<TEntity extends IEntity, TRepository extends I
     update(entity: TEntity): Promise<TEntity> {
         return this.repository.update(entity);
     }
-    abstract map(response: Response): Promise<Array<TEntity>>;
 
 }
 
@@ -361,11 +359,10 @@ export interface IReduxService<TEntity extends IEntity> {
     query(actionName: string, context: QueryContext): Promise<void>;
     add(entity: TEntity): Promise<void>;
     update(entity: TEntity): Promise<void>;
-    map(response: Response): Promise<Array<TEntity>>;
     dispatch(actionName: string, entity: TEntity): void
 }
 
-export abstract class BaseReduxService<TEntity extends IEntity, TRepository extends IRepository<TEntity>> implements IReduxService<TEntity>
+export class BaseReduxService<TEntity extends IEntity, TRepository extends IRepository<TEntity>> implements IReduxService<TEntity>
 {
     repository: TRepository;
     reduxDispatch: any;
@@ -407,5 +404,4 @@ export abstract class BaseReduxService<TEntity extends IEntity, TRepository exte
     async  update(entity: TEntity): Promise<void> {
         await this.repository.update(entity);
     }
-    abstract map(response: Response): Promise<Array<TEntity>>;
 }
