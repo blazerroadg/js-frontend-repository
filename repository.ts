@@ -327,7 +327,7 @@ export interface IService<TEntity extends IEntity> {
     update(entity: TEntity): Promise<TEntity>;
 }
 
-export  class BaseSerivce<TEntity extends IEntity, TRepository extends IRepository<TEntity>> implements IService<TEntity>
+export class BaseSerivce<TEntity extends IEntity, TRepository extends IRepository<TEntity>> implements IService<TEntity>
 {
     repository: TRepository
     constructor(repository: TRepository) {
@@ -404,4 +404,22 @@ export class BaseReduxService<TEntity extends IEntity, TRepository extends IRepo
     async  update(entity: TEntity): Promise<void> {
         await this.repository.update(entity);
     }
+}
+
+
+export interface IReducerSerice<TState> {
+    state: TState
+    reduce(state: TState) : TState;
+}
+
+export class DefualtReducerService<TState> {
+    state: TState
+    constructor(state: TState) {
+        this.state = state;
+    }
+    reduce(state: TState = this.state, action: any) : TState {
+        if (!action) return state;
+        return { ...state, [action.actionName]: action.entity }
+    }
+
 }
