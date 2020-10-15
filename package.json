@@ -1,6 +1,6 @@
 {
   "name": "react-native-repository",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/blazerroad/react-native-repository#readme",
   "dependencies": {
-    "react-native-azure-cosmos": "^1.2.3",
+    "react-native-azure-cosmos": "^1.2.4",
     "react-native-azure-cosmos-gremlin": "^1.1.2"
   }
 }

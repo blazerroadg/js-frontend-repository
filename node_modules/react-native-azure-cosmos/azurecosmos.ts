@@ -27,7 +27,7 @@ abstract class BaseAzureCosmosElementResolver<T extends BaseFetchParam> implemen
 
     abstract Key: RequestType;
     async azurFetch(param: BaseFetchParam): Promise<Response> {
-        const isValid = (param.type === 'Query' || param.type === 'Sp') && cache(param.stateName, undefined)
+        const isValid = (param.type === 'Query' || param.type === 'Sp' || param.type === 'AllCols' || param.type === 'ById') && cache(param.actionName, undefined)
         if (isValid) {
             return new Response(null, { status: 304, statusText: "cache" })
         }
@@ -270,8 +270,6 @@ class AzureUpdateDocs extends BaseAzureCosmosElementResolver<UpdateFetchParam> {
         })
     }
 }
-
-
 
 export const azurefetch = async (param: BaseFetchParam) => {
     let loctor = AzureCosmosLocator.getInstance();
