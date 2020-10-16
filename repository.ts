@@ -146,6 +146,8 @@ export abstract class AzureCosmosRepository<TEntity extends IEntity> implements 
             for (const key in rowEntity) {
                 rowEntity[key] = datas[index][key]
             }
+            rowEntity.ok = response.ok;
+            rowEntity.status = response.status;
             entities.push(rowEntity)
         }
         return entities;
