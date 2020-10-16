@@ -422,7 +422,7 @@ export class DefualtReducerService<TState> {
         this.state = state;
     }
     reduce(state: TState = this.state, action: any) : TState {
-        if (!action) return state;
+        if (!action || !action.actionName) return state;
         return { ...state, [action.actionName]: action.entity }
     }
 
