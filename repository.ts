@@ -384,7 +384,7 @@ export class BaseReduxService<TEntity extends IEntity, TRepository extends IRepo
         if (!ent.ok) {
             throw new Error("There is some thing wrong from API");
         }
-        this.reduxDispatch({ actionName,entity })
+        this.reduxDispatch({ type: actionName, entity: entity })
     }
 
 
@@ -435,8 +435,8 @@ export class DefualtReducerService<TState> implements IReducerSerice<TState> {
     }
 
     reduce(state: TState = this.state, action: any): TState {
-        if (!action || !this.isAcceptable(action.actionName)) return state;
-        return { ...state, [action.actionName]: action.entity }
+        if (!action || !this.isAcceptable(action.type)) return state;
+        return { ...state, [action.type]: action.entity }
     }
 
 }
