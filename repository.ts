@@ -235,6 +235,8 @@ export class AzureFetchEntityMetaData extends FetchEntityMetaData<AzureCosmosFet
         this.dbName = dbName;
         this.col = col;
         this.entityType = entityType;
+        this.db = new AzureCosmosFetch();
+        
     }
 }
 
