@@ -384,7 +384,7 @@ export class BaseReduxService<TEntity extends IEntity, TRepository extends IRepo
         if (!ent.ok) {
             throw new Error("There is some thing wrong from API");
         }
-        this.reduxDispatch({ type: actionName, entity: entity })
+        this.reduxDispatch({ actionName,entity })
     }
 
 
