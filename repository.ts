@@ -238,7 +238,7 @@ export class AzureFetchEntityMetaData extends FetchEntityMetaData<AzureCosmosFet
         this.col = col;
         this.entityType = entityType;
         this.db = new AzureCosmosFetch();
-        
+
     }
 }
 
@@ -413,16 +413,29 @@ export class BaseReduxService<TEntity extends IEntity, TRepository extends IRepo
 
 export interface IReducerSerice<TState> {
     state: TState
-    reduce(state: TState) : TState;
+    acceptableActions: Array<string>
+
+    isAcceptable(actionName: string): boolean;
+    reduce(state: TState, action: any): TState;
 }
 
-export class DefualtReducerService<TState> {
+export class DefualtReducerService<TState> implements IReducerSerice<TState> {
+
     state: TState
-    constructor(state: TState) {
+    acceptableActions: Array<string>
+
+    constructor(state: TState, acceptableActions: Array<string>) {
         this.state = state;
+        this.acceptableActions = acceptableActions;
     }
-    reduce(state: TState = this.state, action: any) : TState {
-        if (!action || !action.actionName) return state;
+
+
+    isAcceptable(actionName: string): boolean {
+        return this.acceptableActions.some(t => t === actionName);
+    }
+
+    reduce(state: TState = this.state, action: any): TState {
+        if (!action || !this.isAcceptable(action.actionName)) return state;
         return { ...state, [action.actionName]: action.entity }
     }
 
