@@ -1,5 +1,4 @@
 # react-native-repository
-# react-redux-repository
 if you are searching for way to write cleaner code, prevent using fetch all over your ACTIONS and you are not happy with very big long REDUCER switch this is solution for you 
 for example app visit : https://github.com/blazerroad/workwolf/
 
@@ -15,7 +14,7 @@ This example show you how you can manage your code better with redux pattern if 
 ## Step 1
 ### Install
 ```bash
-npm i react-redux-respository --save
+npm i react-native-repository --save
 ```
 
 ## Step 2
