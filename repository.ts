@@ -319,8 +319,6 @@ export class AzureGermlinFetch implements IDb {
 
 export interface IFetchContext<TDb extends IDb> {
     entities: Array<FetchEntityMetaData<TDb>>
-
-
 }
 
 export interface IService<TEntity extends IEntity> {
@@ -435,7 +433,7 @@ export class DefualtReducerService<TState> implements IReducerSerice<TState> {
     }
 
     reduce(state: TState = this.state, action: any): TState {
-        if (!action || !this.isAcceptable(action.type)) return state;
+        if (!action || !this.isAcceptable(action.typegit)) return state;
         return { ...state, [action.type]: action.entity }
     }
 
