@@ -422,18 +422,24 @@ export class DefualtReducerService<TState> implements IReducerSerice<TState> {
     state: TState
     acceptableActions: Array<string>
 
-    constructor(state: TState, acceptableActions: Array<string>) {
+    constructor(state: TState) {
         this.state = state;
-        this.acceptableActions = acceptableActions;
+        this.acceptableActions = new Array<string>();
+        this.fillAcceptable(state);
     }
 
+    fillAcceptable(state: TState) {
+        for (const key in state) {
+            this.acceptableActions.push(key)
+        }
+    }
 
     isAcceptable(actionName: string): boolean {
         return this.acceptableActions.some(t => t === actionName);
     }
 
     reduce(state: TState = this.state, action: any): TState {
-        if (!action || !this.isAcceptable(action.typegit)) return state;
+        if (!action || !this.isAcceptable(action.type)) return state;
         return { ...state, [action.type]: action.entity }
     }
 
