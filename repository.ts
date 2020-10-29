@@ -319,6 +319,8 @@ export class AzureGermlinFetch implements IDb {
 
 export interface IFetchContext<TDb extends IDb> {
     entities: Array<FetchEntityMetaData<TDb>>
+
+
 }
 
 export interface IService<TEntity extends IEntity> {
@@ -386,7 +388,7 @@ export class BaseReduxService<TEntity extends IEntity, TRepository extends IRepo
     }
 
 
-    async  getById(actionName: string, id: string, partitionKey: string): Promise<void> {
+    async getById(actionName: string, id: string, partitionKey: string): Promise<void> {
         const response = await this.repository.getById(id, partitionKey);
         this.dispatch(actionName, response);
 
@@ -396,51 +398,114 @@ export class BaseReduxService<TEntity extends IEntity, TRepository extends IRepo
         this.dispatch(actionName, response);
 
     }
-    async  query(actionName: string, context: QueryContext): Promise<void> {
+    async query(actionName: string, context: QueryContext): Promise<void> {
         const response = await this.repository.query(context);
         this.dispatch(actionName, response);
     }
-    async  add(entity: TEntity): Promise<void> {
+    async add(entity: TEntity): Promise<void> {
         await this.repository.add(entity);
     }
-    async  update(entity: TEntity): Promise<void> {
+    async update(entity: TEntity): Promise<void> {
         await this.repository.update(entity);
     }
 }
 
-
-export interface IReducerSerice<TState> {
-    state: TState
-    acceptableActions: Array<string>
-
-    isAcceptable(actionName: string): boolean;
-    reduce(state: TState, action: any): TState;
+export interface IReducer<TState> {
+    state: TState;
+    acceptableActions: Array<string>;
+    reduce(state: TState, action: any): TState
 }
 
-export class DefualtReducerService<TState> implements IReducerSerice<TState> {
+export abstract class BaseReducer<TState> implements IReducer<TState> {
+    state: TState;
+    acceptableActions: Array<string>;
+    protected successor: BaseReducer<TState>;
 
-    state: TState
-    acceptableActions: Array<string>
 
-    constructor(state: TState) {
+    constructor(state: TState, acceptableActions: Array<string>) {
         this.state = state;
-        this.acceptableActions = new Array<string>();
-        this.fillAcceptable(state);
-    }
-
-    fillAcceptable(state: TState) {
-        for (const key in state) {
-            this.acceptableActions.push(key)
-        }
+        this.acceptableActions = acceptableActions;
     }
 
     isAcceptable(actionName: string): boolean {
         return this.acceptableActions.some(t => t === actionName);
     }
 
-    reduce(state: TState = this.state, action: any): TState {
-        if (!action || !this.isAcceptable(action.type)) return state;
+    public setSuccessor(successor: BaseReducer<TState>): void {
+        this.successor = successor;
+    }
+
+    public handleRequest(state: TState, action: any): TState {
+        if (this.isAcceptable(action.type)) {
+            return this.reduce(state, action)
+        }
+        if (this.successor) {
+            return this.successor.reduce(state, action)
+        }
+        return state;
+    }
+
+    abstract reduce(state: TState, action: any): TState
+}
+
+export class DefaultReducer<TState> extends BaseReducer<TState>
+{
+    constructor(state: TState) {
+        super(state, new Array<string>())
+        this.fillAcceptable(state);
+    }
+
+    fillAcceptable(state: TState) {
+        for (const key in state) {
+            this.acceptableActions.push(key);
+        }
+    }
+
+    reduce(state: TState, action: any): TState {
         return { ...state, [action.type]: action.entity }
+    }
+}
+
+
+
+export class DefualtReducerService<TState> {
+
+    state: TState;
+    reducers: Array<BaseReducer<TState>>;
+    reducer: BaseReducer<TState>;
+
+    constructor(state: TState, reducers: Array<BaseReducer<TState>>) {
+        this.state = state;
+        this.reducers = reducers;
+        this.chain();
+
+    }
+
+    pairwise(arr: Array<BaseReducer<TState>>, func) {
+        for (var i = 0; i < arr.length; i++) {
+            if (i === arr.length) {
+                arr[i].setSuccessor(new DefaultReducer<TState>(this.state))
+                return;
+            }
+            func(arr[i], arr[i + 1])
+        }
+    }
+
+
+    chain(): void {
+        if (this.reducers && this.reducers.length > 0) {
+            this.pairwise(this.reducers, function (current: BaseReducer<TState>, next: BaseReducer<TState>) {
+                current.setSuccessor(next);
+            })
+            this.reducer = this.reducers[0]
+            return;
+        }
+        this.reducer = new DefaultReducer<TState>(this.state)
+
+    }
+
+    reduce(state: TState = this.state, action: any): TState {
+        return this.reducer.handleRequest(state, action);
     }
 
 }
