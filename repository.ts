@@ -1,3 +1,4 @@
+
 import {
     BaseFetchParam,
     azurefetch,
@@ -126,20 +127,26 @@ export abstract class AzureCosmosRepository<TEntity extends IEntity> implements 
         return null;
     }
 
-    async innerMap(response: Response, entity: TEntity, entities: Array<TEntity>): Promise<Array<TEntity>> {
+    async validate(response: Response, entity: TEntity, entities: Array<TEntity>): Promise<Array<TEntity>> {
         if (!response.ok || response.status === 304) {
             entity.status = response.status;
             entity.ok = response.ok;
             entities.push(entity);
             return entities;
         }
-        var resData = await response.json();
+        const resData = await response.json();
         if (!resData || !resData.Documents || !Array.isArray(resData.Documents)) {
             entity.status = 501;
             entities.push(entity);
             return entities;
         }
+        return null;
+    }
 
+    async innerMap(response: Response, entity: TEntity, entities: Array<TEntity>): Promise<Array<TEntity>> {
+        const validate = await this.validate(response, entity, entities);
+        if (!validate) return validate;
+        const resData = await response.json();
         const datas = resData.Documents;
         for (let index = 0; index < datas.length; index++) {
             const rowEntity = { ...entity }
@@ -217,6 +224,40 @@ export abstract class AzureGermlinRepository<TEntity extends IEntity> implements
         const mapped = await this.map(response);
         if (mapped.length > 0) return mapped[0];
         return null;
+    }
+
+
+    async validate(response: Response, entity: TEntity, entities: Array<TEntity>): Promise<Array<TEntity>> {
+        if (!response.ok || response.status === 304) {
+            entity.status = response.status;
+            entity.ok = response.ok;
+            entities.push(entity);
+            return entities;
+        }
+        const resData = await response.json();
+        if (!resData || !resData.Documents || !Array.isArray(resData.Documents)) {
+            entity.status = 501;
+            entities.push(entity);
+            return entities;
+        }
+        return null;
+    }
+
+    async innerMap(response: Response, entity: TEntity, entities: Array<TEntity>): Promise<Array<TEntity>> {
+        const validate = await this.validate(response, entity, entities);
+        if (!validate) return validate;
+        const resData = await response.json();
+        const datas = resData.result;
+        for (let index = 0; index < datas.length; index++) {
+            const rowEntity = { ...entity }
+            for (const key in rowEntity) {
+                rowEntity[key] = datas[index][key]
+            }
+            rowEntity.ok = response.ok;
+            rowEntity.status = response.status;
+            entities.push(rowEntity)
+        }
+        return entities;
     }
 
     abstract map(response: Response): Promise<Array<TEntity>>;
@@ -366,12 +407,12 @@ export interface IReduxService<TEntity extends IEntity> {
     dispatch(actionName: string, entity: TEntity): void
 }
 
-export class BaseReduxService<TEntity extends IEntity, TRepository extends IRepository<TEntity>> implements IReduxService<TEntity>
+export class BaseReduxService<TEntity extends IEntity> implements IReduxService<TEntity>
 {
-    repository: TRepository;
+    repository: IRepository<TEntity>;
     reduxDispatch: any;
 
-    constructor(dispatch: any, repository: TRepository) {
+    constructor(dispatch: any, repository: IRepository<TEntity>) {
         this.repository = repository;
         this.reduxDispatch = dispatch;
     }
