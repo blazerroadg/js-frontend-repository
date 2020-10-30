@@ -3,10 +3,12 @@ import {
     BaseFetchParam,
     azurefetch,
     BaseFetchParamDefualt,
-    UpdateFetchParamDefault
+    UpdateFetchParamDefault,
+    initAzureCosmos,
+    AzureConfig
 } from 'react-native-azure-cosmos/azurecosmos'
 
-import { FetchParam, FetchParamDefualt, azuregermlinfetch, Param } from 'react-native-azure-cosmos-gremlin/germlin'
+import { FetchParam, FetchParamDefualt, azuregermlinfetch, Param , GermlinConfig,initCosmosGermlin} from 'react-native-azure-cosmos-gremlin/germlin'
 
 export interface IEntity {
     id: string;
@@ -191,6 +193,8 @@ export abstract class AzureGermlinRepository<TEntity extends IEntity> implements
     async query(context: QueryContext): Promise<Array<TEntity>> {
         const response = await this.metaData.db.fetch(new FetchParamDefualt(context.query, context.parameters, context.actionname));
         const entities = this.map(response);
+        debugger;
+
         return entities;
     }
 
@@ -290,6 +294,7 @@ export class AzureGermlinEntityMetaData extends FetchEntityMetaData<AzureGermlin
         this.dbName = dbName;
         this.col = col;
         this.entityType = entityType;
+        this.db = new AzureGermlinFetch()
     }
 }
 
@@ -549,4 +554,14 @@ export class DefualtReducerService<TState> {
         return this.reducer.handleRequest(state, action);
     }
 
+}
+
+
+
+export const initGermlin = (config: GermlinConfig) => {
+    initCosmosGermlin(config)
+}
+
+export const initCosmos = (config: AzureConfig) => {
+    initAzureCosmos(config)
 }
