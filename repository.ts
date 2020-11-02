@@ -8,7 +8,7 @@ import {
     AzureConfig
 } from 'react-native-azure-cosmos/azurecosmos'
 
-import { FetchParam, FetchParamDefualt, azuregermlinfetch, Param , GermlinConfig,initCosmosGermlin} from 'react-native-azure-cosmos-gremlin/germlin'
+import { FetchParam, FetchParamDefualt, azuregermlinfetch, Param, GermlinConfig, initCosmosGermlin } from 'react-native-azure-cosmos-gremlin/germlin'
 
 export interface IEntity {
     id: string;
@@ -53,12 +53,16 @@ export interface IRepository<TEntity extends IEntity> {
     map(response: Response): Promise<Array<TEntity>>;
 }
 
-export abstract class AzureCosmosRepository<TEntity extends IEntity> implements IRepository<TEntity>
+export class AzureCosmosRepository<TEntity extends IEntity> implements IRepository<TEntity>
 {
     metaData: AzureFetchEntityMetaData;
-    constructor(metaData: AzureFetchEntityMetaData) {
+    constructor(private entityType: new () => TEntity, metaData: AzureFetchEntityMetaData) {
         this.metaData = metaData;
 
+    }
+
+    getNew(): TEntity {
+        return new this.entityType();
     }
 
     async getById(id: string, partitionKey: string): Promise<TEntity> {
@@ -129,7 +133,9 @@ export abstract class AzureCosmosRepository<TEntity extends IEntity> implements 
         return null;
     }
 
-    async validate(response: Response, entity: TEntity, entities: Array<TEntity>): Promise<Array<TEntity>> {
+    async handelMap(response: Response): Promise<Array<TEntity>> {
+        let entity = this.getNew();
+        let entities = new Array<TEntity>();
         if (!response.ok || response.status === 304) {
             entity.status = response.status;
             entity.ok = response.ok;
@@ -142,36 +148,40 @@ export abstract class AzureCosmosRepository<TEntity extends IEntity> implements 
             entities.push(entity);
             return entities;
         }
-        return null;
+
+        return this.innerMap(resData);
     }
 
-    async innerMap(response: Response, entity: TEntity, entities: Array<TEntity>): Promise<Array<TEntity>> {
-        const validate = await this.validate(response, entity, entities);
-        if (!validate) return validate;
-        const resData = await response.json();
+    async innerMap(resData: any): Promise<Array<TEntity>> {
         const datas = resData.Documents;
+        const entities = new Array<TEntity>();
         for (let index = 0; index < datas.length; index++) {
-            const rowEntity = { ...entity }
+            const rowEntity = this.getNew();
             for (const key in rowEntity) {
                 rowEntity[key] = datas[index][key]
             }
-            rowEntity.ok = response.ok;
-            rowEntity.status = response.status;
+            rowEntity.ok = true;
+            rowEntity.status = 200;
             entities.push(rowEntity)
         }
         return entities;
     }
 
-    abstract map(response: Response): Promise<Array<TEntity>>;
+    map(response: Response): Promise<Array<TEntity>> {
+        return this.handelMap(response);
+    }
 
 }
 
 
-export abstract class AzureGermlinRepository<TEntity extends IEntity> implements IRepository<TEntity>
-{
+export class AzureGermlinRepository<TEntity extends IEntity> implements IRepository<TEntity> {
     metaData: AzureGermlinEntityMetaData;
-    constructor(metaData: AzureGermlinEntityMetaData) {
+    constructor(private entityType: new () => TEntity, metaData: AzureGermlinEntityMetaData) {
         this.metaData = metaData;
+    }
+
+    getNew(): TEntity {
+        return new this.entityType();
     }
 
     async getById(id: string, partitionKey: string): Promise<TEntity> {
@@ -193,8 +203,6 @@ export abstract class AzureGermlinRepository<TEntity extends IEntity> implements
     async query(context: QueryContext): Promise<Array<TEntity>> {
         const response = await this.metaData.db.fetch(new FetchParamDefualt(context.query, context.parameters, context.actionname));
         const entities = this.map(response);
-        debugger;
-
         return entities;
     }
 
@@ -231,7 +239,9 @@ export abstract class AzureGermlinRepository<TEntity extends IEntity> implements
     }
 
 
-    async validate(response: Response, entity: TEntity, entities: Array<TEntity>): Promise<Array<TEntity>> {
+    async handelMap(response: Response): Promise<any> {
+        let entity = this.getNew();
+        let entities = new Array<TEntity>();
         if (!response.ok || response.status === 304) {
             entity.status = response.status;
             entity.ok = response.ok;
@@ -239,34 +249,35 @@ export abstract class AzureGermlinRepository<TEntity extends IEntity> implements
             return entities;
         }
         const resData = await response.json();
-        if (!resData || !resData.Documents || !Array.isArray(resData.Documents)) {
+        if (!resData || !resData.result || !Array.isArray(resData.result)) {
             entity.status = 501;
             entities.push(entity);
             return entities;
         }
-        return null;
+        return this.innerMap(resData);
     }
 
-    async innerMap(response: Response, entity: TEntity, entities: Array<TEntity>): Promise<Array<TEntity>> {
-        const validate = await this.validate(response, entity, entities);
-        if (!validate) return validate;
-        const resData = await response.json();
+    async innerMap(resData: any): Promise<Array<TEntity>> {
+        let entities = new Array<TEntity>();
         const datas = resData.result;
         for (let index = 0; index < datas.length; index++) {
-            const rowEntity = { ...entity }
+            const rowEntity = this.getNew();
             for (const key in rowEntity) {
                 rowEntity[key] = datas[index][key]
             }
-            rowEntity.ok = response.ok;
-            rowEntity.status = response.status;
+            rowEntity.ok = true;
+            rowEntity.status = 200;
             entities.push(rowEntity)
         }
         return entities;
     }
 
-    abstract map(response: Response): Promise<Array<TEntity>>;
+    map(response: Response): Promise<Array<TEntity>> {
+        return this.handelMap(response);
+    }
 
 }
+
 
 export class FetchEntityMetaData<TDb extends IDb> {
     dbName: string;
