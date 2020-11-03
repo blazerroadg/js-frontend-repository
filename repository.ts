@@ -10,6 +10,7 @@ import {
 
 import { FetchParam, FetchParamDefualt, azuregermlinfetch, Param, GermlinConfig, initCosmosGermlin } from 'react-native-azure-cosmos-gremlin/germlin'
 
+
 export interface IEntity {
     id: string;
     partitionKey: string;
@@ -23,10 +24,10 @@ export class DefaultEntity implements IEntity {
     status: number;
     ok: boolean;
     constructor(id?: string, partitionKey?: string, status?: number, ok?: boolean) {
-        this.id = id;
-        this.partitionKey = partitionKey;
-        this.status = status;
-        this.ok = ok;
+        this.id = id ?? "";
+        this.partitionKey = partitionKey ?? "";
+        this.status = status ?? 0;
+        this.ok = ok ?? true;
     }
 }
 
@@ -53,6 +54,7 @@ export interface IRepository<TEntity extends IEntity> {
     map(response: Response): Promise<Array<TEntity>>;
 }
 
+export const nullValue = null as any;
 export class AzureCosmosRepository<TEntity extends IEntity> implements IRepository<TEntity>
 {
     metaData: AzureFetchEntityMetaData;
@@ -77,7 +79,7 @@ export class AzureCosmosRepository<TEntity extends IEntity> implements IReposito
                 this.metaData.dbName));
         const entity = await this.map(response);
         if (entity.length > 0) return entity[0];
-        return null;
+        return nullValue;
     }
 
     async all(partitionKey: string): Promise<Array<TEntity>> {
@@ -116,7 +118,7 @@ export class AzureCosmosRepository<TEntity extends IEntity> implements IReposito
                 this.metaData.dbName));
         const mapped = await this.map(response);
         if (mapped.length > 0) return mapped[0];
-        return null;
+        return nullValue;
     }
     async update(entity: TEntity): Promise<TEntity> {
         const response = await this.metaData.db.fetch(
@@ -130,7 +132,7 @@ export class AzureCosmosRepository<TEntity extends IEntity> implements IReposito
                 this.metaData.dbName));
         const mapped = await this.map(response);
         if (mapped.length > 0) return mapped[0];
-        return null;
+        return nullValue;
     }
 
     async handelMap(response: Response): Promise<Array<TEntity>> {
@@ -186,16 +188,16 @@ export class AzureGermlinRepository<TEntity extends IEntity> implements IReposit
 
     async getById(id: string, partitionKey: string): Promise<TEntity> {
         const query = `g.V('${id})`
-        const response = await this.metaData.db.fetch(new FetchParamDefualt(query, undefined, id));
+        const response = await this.metaData.db.fetch(new FetchParamDefualt(query, nullValue, id));
         const entity = await this.map(response);
         if (entity.length > 0) return entity[0];
-        return null;
+        return nullValue;
     }
 
     async all(partitionKey: string): Promise<Array<TEntity>> {
         const query = `g.V().hasLabel('${this.metaData.col}')`
         const response = await this.metaData.db.fetch(
-            new FetchParamDefualt(query, undefined, this.metaData.col));
+            new FetchParamDefualt(query, undefined as any, this.metaData.col));
         const entities = this.map(response);
         return entities;
     }
@@ -210,7 +212,7 @@ export class AzureGermlinRepository<TEntity extends IEntity> implements IReposit
         let query = `g.addV('${this.metaData.col}')`;
         const parameters = new Array<Param>();
         for (const key in entity) {
-            if (!entity[key]) return;
+            if (!entity[key]) return nullValue;
             const param = `@${key}`;
             parameters.push(new Param(param, String(entity[key])));
             query += `.property('${key}','${param}')`
@@ -219,14 +221,14 @@ export class AzureGermlinRepository<TEntity extends IEntity> implements IReposit
             new FetchParamDefualt(query, parameters, ""));
         const mapped = await this.map(response);
         if (mapped.length > 0) return mapped[0];
-        return null;
+        return nullValue;
     }
     async update(entity: TEntity): Promise<TEntity> {
         let query = `g.V('@id')`;
         const parameters = new Array<Param>();
         parameters.push(new Param("@id", entity.id));
         for (const key in entity) {
-            if (!entity[key]) return;
+            if (!entity[key]) continue;
             const param = `@${key}`;
             parameters.push(new Param(param, String(entity[key])));
             query += `.property('${key}','${param}')`
@@ -235,7 +237,7 @@ export class AzureGermlinRepository<TEntity extends IEntity> implements IReposit
             new FetchParamDefualt(query, parameters, ""));
         const mapped = await this.map(response);
         if (mapped.length > 0) return mapped[0];
-        return null;
+        return nullValue;
     }
 
 
@@ -280,10 +282,10 @@ export class AzureGermlinRepository<TEntity extends IEntity> implements IReposit
 
 
 export class FetchEntityMetaData<TDb extends IDb> {
-    dbName: string;
-    col: string;
-    entityType: string;
-    db: TDb
+    dbName: string = "";
+    col: string = "";
+    entityType: string = "";
+    db: TDb = nullValue
 }
 
 export class AzureFetchEntityMetaData extends FetchEntityMetaData<AzureCosmosFetch>
@@ -306,55 +308,6 @@ export class AzureGermlinEntityMetaData extends FetchEntityMetaData<AzureGermlin
         this.col = col;
         this.entityType = entityType;
         this.db = new AzureGermlinFetch()
-    }
-}
-
-export class FetchContext<TDb extends IDb, TMeta extends FetchEntityMetaData<TDb>> implements IFetchContext<TDb> {
-    entities: Array<TMeta>;
-
-    constructor() {
-        this.entities = new Array<TMeta>();
-    }
-
-    add(entity: TMeta): void {
-        this.entities.push(entity);
-    }
-
-    find<TEntity>(entity: TEntity): TMeta {
-        const entityType = typeof entity;
-        const res = this.entities.find(t => t.entityType === entityType);
-        return res;
-    }
-}
-
-export class AzureCosmosFetchContext extends FetchContext<AzureCosmosFetch, AzureFetchEntityMetaData>
-{
-    public static _instance: AzureCosmosFetchContext;
-    public static instance(): AzureCosmosFetchContext {
-        if (!AzureCosmosFetchContext._instance) {
-            AzureCosmosFetchContext._instance = new AzureCosmosFetchContext();
-        }
-        return AzureCosmosFetchContext._instance;
-    }
-
-    private constructor() {
-        super();
-    }
-}
-
-
-export class AzureGermlinFetchContext extends FetchContext<AzureGermlinFetch, AzureGermlinEntityMetaData>
-{
-    public static _instance: AzureGermlinFetchContext;
-    public static instance(): AzureGermlinFetchContext {
-        if (!AzureGermlinFetchContext._instance) {
-            AzureGermlinFetchContext._instance = new AzureGermlinFetchContext();
-        }
-        return AzureGermlinFetchContext._instance;
-    }
-
-    private constructor() {
-        super();
     }
 }
 
@@ -476,7 +429,7 @@ export interface IReducer<TState> {
 export abstract class BaseReducer<TState> implements IReducer<TState> {
     state: TState;
     acceptableActions: Array<string>;
-    protected successor: BaseReducer<TState>;
+    protected successor: BaseReducer<TState> = nullValue;
 
 
     constructor(state: TState, acceptableActions: Array<string>) {
@@ -529,7 +482,7 @@ export class DefualtReducerService<TState> {
 
     state: TState;
     reducers: Array<BaseReducer<TState>>;
-    reducer: BaseReducer<TState>;
+    reducer: BaseReducer<TState> = nullValue;
 
     constructor(state: TState, reducers: Array<BaseReducer<TState>>) {
         this.state = state;
@@ -538,7 +491,7 @@ export class DefualtReducerService<TState> {
 
     }
 
-    pairwise(arr: Array<BaseReducer<TState>>, func) {
+    pairwise(arr: Array<BaseReducer<TState>>, func : any) {
         for (var i = 0; i < arr.length; i++) {
             if (i === arr.length) {
                 arr[i].setSuccessor(new DefaultReducer<TState>(this.state))
