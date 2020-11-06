@@ -10,7 +10,6 @@ import {
 
 import { FetchParam, FetchParamDefualt, azuregermlinfetch, Param, GermlinConfig, initCosmosGermlin } from 'react-native-azure-cosmos-gremlin/germlin'
 
-
 export interface IEntity {
     id: string;
     partitionKey: string;
@@ -450,7 +449,7 @@ export abstract class BaseReducer<TState> implements IReducer<TState> {
             return this.reduce(state, action)
         }
         if (this.successor) {
-            return this.successor.reduce(state, action)
+            return this.successor.handleRequest(state, action)
         }
         return state;
     }
@@ -503,14 +502,16 @@ export class DefualtReducerService<TState> {
 
 
     chain(): void {
+        const defaultSuccessor = new DefaultReducer<TState>(this.state);
         if (this.reducers && this.reducers.length > 0) {
             this.pairwise(this.reducers, function (current: BaseReducer<TState>, next: BaseReducer<TState>) {
-                current.setSuccessor(next);
+                const succeror = next ? next : defaultSuccessor
+                current.setSuccessor(succeror);
             })
             this.reducer = this.reducers[0]
             return;
         }
-        this.reducer = new DefaultReducer<TState>(this.state)
+        this.reducer = defaultSuccessor
 
     }
 
