@@ -9,12 +9,15 @@ import {
 } from 'react-native-azure-cosmos/azurecosmos'
 
 import { FetchParam, FetchParamDefualt, azuregermlinfetch, Param, GermlinConfig, initCosmosGermlin } from 'react-native-azure-cosmos-gremlin/germlin'
+export class ParamType extends Param {
 
+}
 export interface IEntity {
     id: string;
     partitionKey: string;
     status: number;
     ok: boolean;
+    error?: string;
 }
 
 export class DefaultEntity implements IEntity {
@@ -22,6 +25,7 @@ export class DefaultEntity implements IEntity {
     partitionKey: string;
     status: number;
     ok: boolean;
+    error?: string;
     constructor(id?: string, partitionKey?: string, status?: number, ok?: boolean) {
         this.id = id ?? "";
         this.partitionKey = partitionKey ?? "";
@@ -98,7 +102,10 @@ export class AzureCosmosRepository<TEntity extends IEntity> implements IReposito
         const response = await this.metaData.db.fetch(
             new BaseFetchParamDefualt(
                 this.metaData.col,
-                context.query,
+                {
+                    "query": context.query,
+                    "parameters": context.parameters
+                },
                 'Query',
                 context.partitionKey,
                 context.actionname,
@@ -137,15 +144,17 @@ export class AzureCosmosRepository<TEntity extends IEntity> implements IReposito
     async handelMap(response: Response): Promise<Array<TEntity>> {
         let entity = this.getNew();
         let entities = new Array<TEntity>();
+        const resData = await response.json();
         if (!response.ok || response.status === 304) {
             entity.status = response.status;
             entity.ok = response.ok;
+            entity.error = JSON.stringify(resData)
             entities.push(entity);
             return entities;
         }
-        const resData = await response.json();
         if (!resData || !resData.Documents || !Array.isArray(resData.Documents)) {
             entity.status = 501;
+            entity.error = JSON.stringify(resData)
             entities.push(entity);
             return entities;
         }
@@ -490,7 +499,7 @@ export class DefualtReducerService<TState> {
 
     }
 
-    pairwise(arr: Array<BaseReducer<TState>>, func : any) {
+    pairwise(arr: Array<BaseReducer<TState>>, func: any) {
         for (var i = 0; i < arr.length; i++) {
             if (i === arr.length) {
                 arr[i].setSuccessor(new DefaultReducer<TState>(this.state))
