@@ -17,7 +17,7 @@ export interface IEntity {
     partitionKey: string;
     status: number;
     ok: boolean;
-    error?: string;
+    message?: string;
 }
 
 export class DefaultEntity implements IEntity {
@@ -122,9 +122,14 @@ export class AzureCosmosRepository<TEntity extends IEntity> implements IReposito
                 entity.partitionKey,
                 "",
                 this.metaData.dbName));
-        const mapped = await this.map(response);
-        if (mapped.length > 0) return mapped[0];
-        return nullValue;
+
+        let entityResp = this.getNew();
+
+        const resData = await response.json();
+        entityResp.status = response.status;
+        entityResp.ok = response.ok;
+        entityResp.message = JSON.stringify(resData)
+        return entityResp;
     }
     async update(entity: TEntity): Promise<TEntity> {
         const response = await this.metaData.db.fetch(
@@ -148,13 +153,13 @@ export class AzureCosmosRepository<TEntity extends IEntity> implements IReposito
         if (!response.ok || response.status === 304) {
             entity.status = response.status;
             entity.ok = response.ok;
-            entity.error = JSON.stringify(resData)
+            entity.message = JSON.stringify(resData)
             entities.push(entity);
             return entities;
         }
         if (!resData || !resData.Documents || !Array.isArray(resData.Documents)) {
             entity.status = 501;
-            entity.error = JSON.stringify(resData)
+            entity.message = JSON.stringify(resData)
             entities.push(entity);
             return entities;
         }
