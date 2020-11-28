@@ -7,6 +7,10 @@ import {
     initAzureCosmos,
     AzureConfig
 } from 'react-native-azure-cosmos/azurecosmos'
+import { cache } from 'react-native-fetch-cache/cacheResolver'
+
+
+import firestore from '@react-native-firebase/firestore';
 
 import { FetchParam, FetchParamDefualt, azuregermlinfetch, Param, GermlinConfig, initCosmosGermlin } from 'react-native-azure-cosmos-gremlin/germlin'
 export class ParamType extends Param {
@@ -58,6 +62,112 @@ export interface IRepository<TEntity extends IEntity> {
 }
 
 export const nullValue = null as any;
+export class FirestoreRepository<TEntity extends IEntity> implements IRepository<TEntity>
+{
+    metaData: FirestoreEntityMetaData;
+    constructor(private entityType: new () => TEntity, metaData: FirestoreEntityMetaData) {
+        this.metaData = metaData;
+
+    }
+
+    getNew(): TEntity {
+        return new this.entityType();
+    }
+
+    cacheResponse(): TEntity {
+        let entity = this.getNew();
+        entity.ok = true;
+        entity.status = 304;
+        return entity;
+    }
+
+    async getById(id: string, partitionKey: string): Promise<TEntity> {
+        const isCached = cache(`${this.metaData.col}::${id}`, undefined);
+        if (isCached) return this.cacheResponse();
+        const fire = await firestore().collection(this.metaData.col).doc(id).get();
+        const entity = await this.map(new Response(fire));
+        if (entity.length > 0) return entity[0];
+        return nullValue;
+    }
+
+    async all(partitionKey: string): Promise<Array<TEntity>> {
+        const isCached = cache(`${this.metaData.col}::all`, undefined);
+        if (isCached) return [this.cacheResponse()];
+        const fire = await firestore().collection(this.metaData.col).get();
+        const entity = await this.map(new Response(fire.docs));
+        return entity;
+    }
+
+    async query(context: QueryContext): Promise<Array<TEntity>> {
+        let query = firestore().collection(this.metaData.col);
+        context.parameters.forEach(t => {
+            const oper = t.name.split(":");
+            query.where(oper[0], oper[1] as any, t.value)
+        })
+        const fire = await query.get();
+        const entities = await this.map(new Response(fire.docs));
+        return entities;
+
+    }
+    async add(entity: TEntity): Promise<TEntity> {
+        await firestore()
+            .collection(this.metaData.col)
+            .doc(entity.id)
+            .set(entity);
+
+        return entity;
+    }
+    async update(entity: TEntity): Promise<TEntity> {
+        await firestore()
+            .collection(this.metaData.col)
+            .doc(entity.id)
+            .update(entity)
+        return entity;
+
+    }
+
+    async handelMap(data: any): Promise<Array<TEntity>> {
+        let entity = this.getNew();
+        let entities = new Array<TEntity>();
+        if (!data._bodyInit) {
+            entity.status = 501;
+            entity.ok = false;
+            entities.push(entity);
+            return entities;
+        }
+
+        if (!data._bodyInit._exists) {
+            entity.status = 404;
+            entity.ok = true;
+            entities.push(entity);
+            return entities;
+        }
+
+        const resData = Array.isArray(data._bodyInit) ? data._bodyInit : [data._bodyInit];
+        return this.innerMap(resData);
+    }
+
+    async innerMap(resData: any): Promise<Array<TEntity>> {
+        const entities = new Array<TEntity>();
+        for (let index = 0; index < resData.length; index++) {
+            const rowEntity = this.getNew();
+            for (const key in rowEntity) {
+                rowEntity[key] = resData[index]._data[key]
+            }
+            rowEntity.ok = true;
+            rowEntity.status = 200;
+            entities.push(rowEntity)
+        }
+        return entities;
+    }
+
+    map(response: Response): Promise<Array<TEntity>> {
+        return this.handelMap(response);
+    }
+
+}
+
+
 export class AzureCosmosRepository<TEntity extends IEntity> implements IRepository<TEntity>
 {
     metaData: AzureFetchEntityMetaData;
@@ -299,6 +409,22 @@ export class FetchEntityMetaData<TDb extends IDb> {
     col: string = "";
     entityType: string = "";
     db: TDb = nullValue
+}
+
+class NullDb implements IDb {
+
+}
+
+export class FirestoreEntityMetaData extends FetchEntityMetaData<NullDb>
+{
+    constructor(entityType: string, col: string, dbName: string) {
+        super();
+        this.dbName = dbName;
+        this.col = col;
+        this.entityType = entityType;
+        this.db = nullValue;
+
+    }
 }
 
 export class AzureFetchEntityMetaData extends FetchEntityMetaData<AzureCosmosFetch>

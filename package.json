@@ -18,6 +18,6 @@
   "homepage": "https://github.com/blazerroad/react-native-repository#readme",
   "dependencies": {
     "react-native-azure-cosmos": "^1.2.6",
-    "react-native-azure-cosmos-gremlin": "^1.1.5"
+    "react-native-azure-cosmos-gremlin": "^1.1.5",
   }
 }
