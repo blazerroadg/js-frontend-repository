@@ -53,11 +53,11 @@ export class QueryContext {
 }
 
 export interface IRepository<TEntity extends IEntity> {
-    getById(id: string, partitionKey: string): Promise<TEntity>;
-    all(partitionKey: string): Promise<Array<TEntity>>;
-    query(context: QueryContext): Promise<Array<TEntity>>;
-    add(entity: TEntity): Promise<TEntity>;
-    update(entity: TEntity): Promise<TEntity>;
+    getById(id: string, options?: any): Promise<TEntity>;
+    all(options?: any): Promise<Array<TEntity>>;
+    query(context: QueryContext, options?: any): Promise<Array<TEntity>>;
+    add(entity: TEntity, options?: any): Promise<TEntity>;
+    update(entity: TEntity, options?: any): Promise<TEntity>;
     map(response: Response): Promise<Array<TEntity>>;
 }
 
@@ -81,7 +81,7 @@ export class FirestoreRepository<TEntity extends IEntity> implements IRepository
         return entity;
     }
 
-    async getById(id: string, partitionKey: string): Promise<TEntity> {
+    async getById(id: string, options?: any): Promise<TEntity> {
         const isCached = cache(`${this.metaData.col}::${id}`, undefined);
         if (isCached) return this.cacheResponse();
         const fire = await firestore().collection(this.metaData.col).doc(id).get();
@@ -90,7 +90,7 @@ export class FirestoreRepository<TEntity extends IEntity> implements IRepository
         return nullValue;
     }
 
-    async all(partitionKey: string): Promise<Array<TEntity>> {
+    async all(options?: any): Promise<Array<TEntity>> {
         const isCached = cache(`${this.metaData.col}::all`, undefined);
         if (isCached) return [this.cacheResponse()];
         const fire = await firestore().collection(this.metaData.col).get();
@@ -98,7 +98,7 @@ export class FirestoreRepository<TEntity extends IEntity> implements IRepository
         return entity;
     }
 
-    async query(context: QueryContext): Promise<Array<TEntity>> {
+    async query(context: QueryContext, options?: any): Promise<Array<TEntity>> {
         let query = firestore().collection(this.metaData.col);
         context.parameters.forEach(t => {
             const oper = t.name.split(":");
@@ -109,7 +109,7 @@ export class FirestoreRepository<TEntity extends IEntity> implements IRepository
         return entities;
 
     }
-    async add(entity: TEntity): Promise<TEntity> {
+    async add(entity: TEntity, options?: any): Promise<TEntity> {
         await firestore()
             .collection(this.metaData.col)
             .doc(entity.id)
@@ -117,7 +117,7 @@ export class FirestoreRepository<TEntity extends IEntity> implements IRepository
 
         return entity;
     }
-    async update(entity: TEntity): Promise<TEntity> {
+    async update(entity: TEntity, options?: any): Promise<TEntity> {
         await firestore()
             .collection(this.metaData.col)
             .doc(entity.id)
@@ -180,14 +180,15 @@ export class AzureCosmosRepository<TEntity extends IEntity> implements IReposito
         return new this.entityType();
     }
 
-    async getById(id: string, partitionKey: string): Promise<TEntity> {
+    async getById(id: string, options?: any): Promise<TEntity> {
+        if (options?.partitionKey) throw Error("partitionKey is null or empty");
         const response = await this.metaData.db.fetch(
             new UpdateFetchParamDefault(
                 this.metaData.col,
                 undefined,
                 'ById',
-                partitionKey,
-                `${this.metaData.entityType}.${id}.${partitionKey}`,
+                options!.partitionKey,
+                `${this.metaData.entityType}.${id}.${options!.partitionKey}`,
                 id,
                 this.metaData.dbName));
         const entity = await this.map(response);
@@ -195,20 +196,21 @@ export class AzureCosmosRepository<TEntity extends IEntity> implements IReposito
         return nullValue;
     }
 
-    async all(partitionKey: string): Promise<Array<TEntity>> {
+    async all(options?: any): Promise<Array<TEntity>> {
+        if (options?.partitionKey) throw Error("partitionKey is null or empty");
         const response = await this.metaData.db.fetch(
             new BaseFetchParamDefualt(
                 this.metaData.col,
                 undefined,
                 'AllCols',
-                partitionKey,
+                options!.partitionKey,
                 `All${this.metaData.col}`,
                 this.metaData.dbName));
         const entities = this.map(response);
         return entities;
     }
 
-    async query(context: QueryContext): Promise<Array<TEntity>> {
+    async query(context: QueryContext, options?: any): Promise<Array<TEntity>> {
         const response = await this.metaData.db.fetch(
             new BaseFetchParamDefualt(
                 this.metaData.col,
@@ -223,7 +225,7 @@ export class AzureCosmosRepository<TEntity extends IEntity> implements IReposito
         const entities = this.map(response);
         return entities;
     }
-    async add(entity: TEntity): Promise<TEntity> {
+    async add(entity: TEntity,options?: any): Promise<TEntity> {
         const response = await this.metaData.db.fetch(
             new BaseFetchParamDefualt(
                 this.metaData.col,
@@ -241,7 +243,7 @@ export class AzureCosmosRepository<TEntity extends IEntity> implements IReposito
         entityResp.message = JSON.stringify(resData)
         return entityResp;
     }
-    async update(entity: TEntity): Promise<TEntity> {
+    async update(entity: TEntity,options?: any): Promise<TEntity> {
         const response = await this.metaData.db.fetch(
             new UpdateFetchParamDefault(
                 this.metaData.col,
@@ -309,29 +311,29 @@ export class AzureGermlinRepository<TEntity extends IEntity> implements IReposit
         return new this.entityType();
     }
 
-    async getById(id: string, partitionKey: string): Promise<TEntity> {
+    async getById(id: string,options?: any): Promise<TEntity> {
         const query = `g.V('${id})`
-        const response = await this.metaData.db.fetch(new FetchParamDefualt(query, nullValue, id));
+        const response = await this.metaData.db.fetch(new FetchParamDefualt(query, nullValue, id,options?.auth));
         const entity = await this.map(response);
         if (entity.length > 0) return entity[0];
         return nullValue;
     }
 
-    async all(partitionKey: string): Promise<Array<TEntity>> {
+    async all(options?: any): Promise<Array<TEntity>> {
         const query = `g.V().hasLabel('${this.metaData.col}')`
         const response = await this.metaData.db.fetch(
-            new FetchParamDefualt(query, undefined as any, this.metaData.col));
+            new FetchParamDefualt(query, undefined as any, this.metaData.col,options?.auth));
         const entities = this.map(response);
         return entities;
     }
 
-    async query(context: QueryContext): Promise<Array<TEntity>> {
-        const response = await this.metaData.db.fetch(new FetchParamDefualt(context.query, context.parameters, context.actionname));
+    async query(context: QueryContext,options?: any): Promise<Array<TEntity>> {
+        const response = await this.metaData.db.fetch(new FetchParamDefualt(context.query, context.parameters, context.actionname,options?.auth));
         const entities = this.map(response);
         return entities;
     }
 
-    async add(entity: TEntity): Promise<TEntity> {
+    async add(entity: TEntity,options?: any): Promise<TEntity> {
         let query = `g.addV('${this.metaData.col}')`;
         const parameters = new Array<Param>();
         for (const key in entity) {
@@ -341,12 +343,12 @@ export class AzureGermlinRepository<TEntity extends IEntity> implements IReposit
             query += `.property('${key}','${param}')`
         }
         const response = await this.metaData.db.fetch(
-            new FetchParamDefualt(query, parameters, ""));
+            new FetchParamDefualt(query, parameters, "",options?.auth));
         const mapped = await this.map(response);
         if (mapped.length > 0) return mapped[0];
         return nullValue;
     }
-    async update(entity: TEntity): Promise<TEntity> {
+    async update(entity: TEntity,options?: any): Promise<TEntity> {
         let query = `g.V('@id')`;
         const parameters = new Array<Param>();
         parameters.push(new Param("@id", entity.id));
@@ -357,7 +359,7 @@ export class AzureGermlinRepository<TEntity extends IEntity> implements IReposit
             query += `.property('${key}','${param}')`
         }
         const response = await this.metaData.db.fetch(
-            new FetchParamDefualt(query, parameters, ""));
+            new FetchParamDefualt(query, parameters, "",options?.auth));
         const mapped = await this.map(response);
         if (mapped.length > 0) return mapped[0];
         return nullValue;
@@ -473,11 +475,11 @@ export interface IFetchContext<TDb extends IDb> {
 }
 
 export interface IService<TEntity extends IEntity> {
-    getById(id: string, partitionKey: string): Promise<TEntity>;
-    all(partitionKey: string): Promise<Array<TEntity>>;
-    query(context: QueryContext): Promise<Array<TEntity>>;
-    add(entity: TEntity): Promise<TEntity>;
-    update(entity: TEntity): Promise<TEntity>;
+    getById(id: string,options?: any): Promise<TEntity>;
+    all(options?: any): Promise<Array<TEntity>>;
+    query(context: QueryContext,options?: any): Promise<Array<TEntity>>;
+    add(entity: TEntity,options?: any): Promise<TEntity>;
+    update(entity: TEntity,options?: any): Promise<TEntity>;
 }
 
 export class BaseSerivce<TEntity extends IEntity, TRepository extends IRepository<TEntity>> implements IService<TEntity>
@@ -487,31 +489,31 @@ export class BaseSerivce<TEntity extends IEntity, TRepository extends IRepositor
         this.repository = repository;
     }
 
-    getById(id: string, partitionKey: string): Promise<TEntity> {
-        return this.repository.getById(id, partitionKey);
+    getById(id: string,options?: any): Promise<TEntity> {
+        return this.repository.getById(id, options);
     }
-    all(partitionKey: string): Promise<Array<TEntity>> {
-        return this.repository.all(partitionKey);
+    all(options?: any): Promise<Array<TEntity>> {
+        return this.repository.all(options);
     }
-    query(context: QueryContext): Promise<Array<TEntity>> {
+    query(context: QueryContext,options?: any): Promise<Array<TEntity>> {
         return this.repository.query(context);
     }
-    add(entity: TEntity): Promise<TEntity> {
-        return this.repository.add(entity);
+    add(entity: TEntity,options?: any): Promise<TEntity> {
+        return this.repository.add(entity,options);
     }
-    update(entity: TEntity): Promise<TEntity> {
-        return this.repository.update(entity);
+    update(entity: TEntity,options?: any): Promise<TEntity> {
+        return this.repository.update(entity,options);
     }
 
 }
 
 
 export interface IReduxService<TEntity extends IEntity> {
-    getById(actionName: string, id: string, partitionKey: string): Promise<void>;
-    all(actionName: string, partitionKey: string): Promise<void>;
-    query(actionName: string, context: QueryContext): Promise<void>;
-    add(entity: TEntity): Promise<void>;
-    update(entity: TEntity): Promise<void>;
+    getById(actionName: string, id: string,options?: any): Promise<void>;
+    all(actionName: string,options?: any): Promise<void>;
+    query(actionName: string, context: QueryContext,options?: any): Promise<void>;
+    add(entity: TEntity,options?: any): Promise<void>;
+    update(entity: TEntity,options?: any): Promise<void>;
     dispatch(actionName: string, entity: TEntity): void
 }
 
@@ -537,25 +539,25 @@ export class BaseReduxService<TEntity extends IEntity> implements IReduxService<
     }
 
 
-    async getById(actionName: string, id: string, partitionKey: string): Promise<void> {
-        const response = await this.repository.getById(id, partitionKey);
+    async getById(actionName: string, id: string,options?: any): Promise<void> {
+        const response = await this.repository.getById(id, options);
         this.dispatch(actionName, response);
 
     }
-    async all(actionName: string, partitionKey: string): Promise<void> {
-        const response = await this.repository.all(partitionKey);
+    async all(actionName: string,options?: any): Promise<void> {
+        const response = await this.repository.all(options);
         this.dispatch(actionName, response);
 
     }
-    async query(actionName: string, context: QueryContext): Promise<void> {
-        const response = await this.repository.query(context);
+    async query(actionName: string, context: QueryContext,options?: any): Promise<void> {
+        const response = await this.repository.query(context,options);
         this.dispatch(actionName, response);
     }
-    async add(entity: TEntity): Promise<void> {
-        await this.repository.add(entity);
+    async add(entity: TEntity,options?: any): Promise<void> {
+        await this.repository.add(entity,options);
     }
-    async update(entity: TEntity): Promise<void> {
-        await this.repository.update(entity);
+    async update(entity: TEntity,options?: any): Promise<void> {
+        await this.repository.update(entity,options);
     }
 }
 
