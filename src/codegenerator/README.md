@@ -43,20 +43,28 @@ Add repocgcnf.json file to root of your project :
 
 
 ```
+| Config  |  |
+| :---:   | :-: |
+| iRepositoryURI |  Path of Folder of Repository Interfaces  | 
+| repositoryURI |  Path of Folder of Concerts Repositories  | 
+| serviceURI |  Path of Folder of Services | 
+| modelPath |  Path of Folder of Models | 
+| baseSeviceType |  "base" :  Services  inherits from BaseService<TEntity, TRepository>  | 
+|                |  "redux" : Services  inherits from BaseReduxService<TEntity, TRepository> | 
+|baseRepositories|  "alias" : Alias will use on cli code generation | 
+||  "name" : Name of Repository base class | 
+||  "path" : path for import repository base class| 
 
-Attempt | #1 | #2 | #3 | #4 | #5 | #6 | #7 | #8 | #9 | #10 | #11
---- | --- | --- | --- |--- |--- |--- |--- |--- |--- |--- |---
-Seconds | 301 | 283 | 290 | 286 | 289 | 285 | 287 | 287 | 272 | 276 | 269
 
 ## Step 3 - Absoult path
 ### Requirement
 
 ```javascript
 // Meh
-import config from '../../../../../../../config';
+import config from '../../../../../../src/models/Todo';
 
 // Awesome!
-import config from '@cuteapp/config';
+import config from '@/src/models/Todo';
 ```
 
 ### Add this babel plugin package
@@ -101,4 +109,16 @@ module.exports = {
   }
 }
 ```
+
+### cli 
+run this command on root of your project will generate the code 
+
+``` bash
+rpcodegen -m Todo -r firestore -s Todo
+```
+| options  |  |
+| :---:   | :-: |
+| -m |  Model Name  | 
+| -r |  Base repository Alias  | 
+| -s (optional) |  create file in sub folder  | 
 
