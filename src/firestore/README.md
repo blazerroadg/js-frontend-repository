@@ -4,7 +4,7 @@ This package provides the base Repository class to fetch data from Firestore.
 # Dependencies
  - <a href="https://github.com/blazerroadg/js-frontend-repository/edit/master/README.md" >  js-frontend-repository </a>
  - <a href="https://rnfirebase.io/" >  React Native Firebase </a>
- - 
+ 
 # Install 
 ```bash
 npm i react-native-firesotre-repository
