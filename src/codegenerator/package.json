@@ -1,0 +1,32 @@
+{
+  "name": "rpcodegen",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bin/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tsc": "tsc"
+  },
+  "keywords": [],
+  "author": "Blazerroad",
+  "license": "",
+  "bin": {
+    "rpcodegen": "./bin/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blazerroad/js-frontend-repository.git"
+  },
+  "bugs": {
+    "url": "https://github.com/blazerroad/js-frontend-repository/issues"
+  },
+  "homepage": "https://github.com/blazerroad/js-frontend-repository/codegenerator#readme",
+  "dependencies": {
+    "yargs": "^16.1.1",
+    "@types/node": "^14.14.10"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.10",
+    "typescript": "^4.1.2"
+  }
+}

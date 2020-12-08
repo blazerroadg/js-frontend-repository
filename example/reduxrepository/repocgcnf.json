@@ -1,0 +1,27 @@
+{
+    "paths" : {
+        "iRepositoryURI": "/src/repositories/interfaces/",  
+        "repositoryURI": "/src/repositories/concretes/",
+        "serviceURI": "/src/services/"
+    },
+    "modelPath": "@/src/models/",
+    "baseSeviceType": "base",
+    "baseRepositories": [
+        {
+            "alias": "firestore",
+            "name": "FirestoreRepository",
+            "path": "react-native-firesotre-repository/FirestoreRepository"
+        },
+        {
+            "alias": "cosmos",
+            "name": "AzureCosmosRepository",
+            "path": "js-azurecosmos-client-repository/AzureCosmosRepository"
+        },
+        {
+            "alias": "cosmosg",
+            "name": "AzureGermlinRepository",
+            "path": "js-azurecosmos-client-repository/AzureGermlinRepository"
+        }
+    ]
+}
+
