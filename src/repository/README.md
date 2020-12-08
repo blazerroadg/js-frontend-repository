@@ -1,123 +1,155 @@
-# react-native-repository
-if you are searching for way to write cleaner code, prevent using fetch all over your ACTIONS and you are not happy with very big long REDUCER switch this is solution for you 
-for example app visit : https://github.com/blazerroad/workwolf/
+# js-frontend-repository
+  The Repository pattern is a well-documented way of working with a data source. In this library I used this pattern for manage API calls from javascript base frontend applications
+
+# Benefits
+
+- It centralizes API calls
+- It gives a substitution point for the unit tests.
+- Provides a flexible architecture
+- It reduces redundancy of code
+- It force programmer to work using the same pattern
+- If you use this pattern then it is easy to maintain the centralized data access logic
+- centralized API call 
+- centralized error handeling
+- Can use diffrents API Gatways in same project with no change in Service level
+- Adding SOLID principals to your project
+
 
 # Diagram
-
-  <img width=800 title="repository diagram" src="https://github.com/blazerroad/workwolf/blob/master/public/repository.png">
-
-# Why
-This example show you how you can manage your code better with redux pattern if you are involved in mid-size or bigger application, with help of Repository pattern you can achieve SOLID principal and make cleaner, extendable,  easy to change 
-
-# How
-
-## Step 1
-### Install
-```bash
-npm i react-native-repository --save
-```
-
-## Step 2
-For actions you should add two folders :
-```bash
--respositories
--services
-```
-repository pattern is base on type of entity, for each entity you should add : 
-  - model 
-  - respository
-  - service 
+  <img width=800 title="repository diagram" src="https://github.com/blazerroadg/js-frontend-repository/blob/master/assests/repositoryarch.jpg">
   
-  #### Model 
-each model should be extends IEntity, DefaultEntity is default calss implemented IEntity you can use DefaultEntity or implement your own
+# Install
+
+```bash
+npm i js-frontend-repository 
+```
+# How to use it
+  <img width=800 title="repository diagram" src="https://github.com/blazerroadg/js-frontend-repository/blob/master/assests/repositoryworkfollow.jpg">
+  
+## Models
+For each API call response you should add a model based on data you fetched from API for example if I want to fetch Todo list from API with properties of title and isDone you should add a model like this : 
+
 ```javascript
-import {DefaultEntity } from 'react-native-repository/repository'
+export class Todo {
+    title? : string;
 
-export class TopHashtag extends DefaultEntity {
-
-    id : string;
-    title : string;
-
-    constructor(id? : string, title? : string) {
-        super();
-        this.id = id;
-        this.title = title;
-    }
+    isDone? : boolean;
 }
 ```
 
-#### Repository
-each repository should extends IRepository at react-native-repository I developed two repository for "Azure cosmos" and "azure germlin cosmos" for react-redux-libarary you should implement your own base repository base the backend service which your are using.
+## IRepository
+For each model you should add one generic IRepository model of that entity, this Interface will be use on Service concretes of the entity and with help of this IRepository you can avoid changes in Service layer if you want to change Repository layer
 
 ```javascript
-import { AzureCosmosRepository,AzureFetchEntityMetaData } from "react-native-repository/repository"
-import { TopHashtag } from '../../models/TopHashtag'
+import { IRepository } from 'js-frontend-repository/interfaces/IRepository';
+import { Todo } from '@/src/models/Todo';
 
-export class TopHashtagRepository extends AzureCosmosRepository<TopHashtag>
-{
-    constructor()
-    {
-        const metaData = new AzureFetchEntityMetaData("TopHashtag","Hashtag","Chiko");
-        super(metaData);
-    }
-    async map(response: Response): Promise<Array<TopHashtag>> {
-       const mapping = this.innerMap(response, new TopHashtag(), new Array<TopHashtag>());
-       return mapping;
-    }
+export interface ITodoRepository extends IRepository<Todo> {
+}
+
+```
+
+## Repository concrete
+
+This file will contain all logic related to API calls for example if you are using GraphQL API, all queries should be developed in this class. Or if you are using Firestore API all related queries should be developed in this class. 
+
+Usually instead of inherit from IRepository in this class it is better practice to inherit from one base repository.
+current project have already three base repository developed, you can use this base repository in scenario you want to fetch data against Firestore , Azure Cosmos  or Azure Cosmos Graph Gremlin if you want to use another service or your own custom API call you should develop the base Repository related to that first 
+
+For more information about implemented Repository base class please refer to each Repository base page : 
+
+- <a href="https://github.com/blazerroadg/js-frontend-repository/tree/master/src/firestore"> Firestore Repository base </a>
+- <a href="https://github.com/blazerroadg/js-frontend-repository/tree/master/src/azureCosmos"> Azure cosmos and Azure cosmos Gremlin Repository base </a>
+
+```javascript
+
+import { FirestoreRepository } from 'react-native-firesotre-repository/FirestoreRepository';
+import { Todo } from '@/src/models/Todo';
+import { FirestoreEntityMetaData } from 'react-native-firesotre-repository/FirestoreEntityMetaData';
+import { FirestoreEntityMetaDataContext } from 'react-native-firesotre-repository/FirestoreEntityMetaDataContext';
+
+export class TodoRepository extends FirestoreRepository<Todo> {
+  constructor() {
+    super(Todo, new FirestoreEntityMetaData(new FirestoreEntityMetaDataContext()));
+  }
 }
 ```
 
-#### service
-each service should extends IService for REDUX I implemented BaseReduxService but you can impliment any Base service.
+you can find example project : <a href="https://github.com/blazerroadg/js-frontend-repository/tree/master/example/repository">Here</a>
+
+## Service
+For each entity you should add one service class too. Service class is responsible for logic across one entity, for example if you want to fetch Todo with Id = 2 and then change the isDone to true and update the result you should develop the logic of that in this class.
+Service is for logic across one entity, and Repository class is for query of those logic.
 
 ```javascript
-import { BaseReduxService } from "react-native-repository/repository"
-import { TopHashtag } from '../../models/TopHashtag'
-import {TopHashtagRepository} from '../repositories/TopHastagsRepository'
+import { ITodoRepository } from '@/src/repositories/interfaces/ITodoRepository';
+import { Todo } from '@/src/models/Todo';
+import { BaseService } from 'js-frontend-repository/BaseSerivce';
 
-export class TopHashtagsService extends BaseReduxService<TopHashtag,TopHashtagRepository>
-{
-    constructor(dispatch: any)
-    {
-        const repository = new  TopHashtagRepository();
-        super(dispatch,repository);
+export class TodoService extends BaseService<Todo, ITodoRepository> {
+    async updateTodo(id: string) {
+        const todo = await (await this.repository.getById(id)).entity;
+        todo.isDone = true;
+        await this.repository.update(todo)
     }
+}
 
+```
+As you can see if you change the repository behind the Todo model this file will not change 
+
+## UnitOfWork.ts
+This singleton file holds all instances of services, and also in this file you can assign a concert repository for each service. With help of this file you can change the repository of services easily and this change will not need to change any logic on service and other layers of application.
+
+```javascript
+// new service import placeholder
+// new service import placeholder
+import { TodoRepository } from '@/src/repositories/concretes/TodoRepository';
+import { TodoService } from '@/src/services/TodoService';
+
+export class UnitOfWork {
+  // new service placeholder
+  todoService: TodoService
+
+  private static innerInstance: UnitOfWork;
+
+  public static instance(): UnitOfWork {
+    if (!UnitOfWork.innerInstance) {
+      UnitOfWork.innerInstance = new UnitOfWork();
+    }
+    return UnitOfWork.innerInstance;
+  }
+
+  private constructor() {
+    // new service init placeholder
+    this.todoService = new TodoService(TodoRepository);
+  }
 }
 ```
 
-#### service FACAD
-this class is contains instance of all services which created.
-```javascript
+# Code Generator
+As you can see for adding new Entity in the repository pattern you have to add 3 files and modify one, to develop faster and avoid duplicate work you can use the “Repository Code Generator” package. 
 
-import { TopHashtagsService } from "./TopHashtagsService";
-import { UploadImage } from "./UploadImage";
-import { initAzureCosmos } from 'react-native-azure-cosmos/azurecosmos'
+## Install
 
-export class Services {
-    public static instance: Services;
-
-    public static init(dispatch: any) {
-        Services.instance = new Services(dispatch);
-    }
-
-    public topHashtage: TopHashtagsService
-    public uploadImage: UploadImage
-
-    private constructor(dispatch: any) {
-        this.topHashtage = new TopHashtagsService(dispatch);
-        this.uploadImage = new UploadImage();
-       
-    }
-}
+```bash
+npm i -g rpcodegen
 ```
-#### add service FACAD to REDUX
 
-after creating your store call Services.init(store.dispatch)
-```javascript
-import { Services } from './store/actions/services/services'
+For more information please see Repository Code Generator page  : 
+<a href="https://github.com/blazerroadg/js-frontend-repository/tree/master/src/codegenerator" >Repository Code Generator</a>
 
-const store = createStore(rootReducer, applyMiddleware(crashReporter, thunk, vanillaPromise, readyStatePromise));
-Services.init(store.dispatch);
+
+# Redux
+If you want to use Redux in your application and you want to manage the API call with repository pattern and automatically dispatch them on State and also if your looking for better solution to design your Actions and Routers in Redux you can use this package 
+
+```bash
+npm i react-redux-repository
 ```
+
+For more information ablut Redux Repository please visit: 
+<a href="https://github.com/blazerroadg/js-frontend-repository/tree/master/src/redux" >React Redux Repository</a>
+
+
+
+
 
