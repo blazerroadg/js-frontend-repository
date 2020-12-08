@@ -49,20 +49,6 @@ export interface ITodoRepository extends IRepository<Todo> {
 
 ```
 
-## Service
-For each entity you should add one service class too. Service class is responsible for logic across one entity, for example if you want to fetch Todo with Id = 2 and then change the isDone to true and update the result you should develop the logic of that in this class.
-Service is for logic across one entity, and Repository class is for query of those logic.
-
-```javascript
-import { ITodoRepository } from '@/src/repositories/interfaces/ITodoRepository';
-import { Todo } from '@/src/models/Todo';
-import { BaseService } from 'js-frontend-repository/BaseSerivce';
-
-export class TodoService extends BaseService<Todo, ITodoRepository> {
-}
-```
-
-
 ## Repository concrete
 
 This file will contain all logic related to API calls for example if you are using GraphQL API, all queries should be developed in this class. Or if you are using Firestore API all related queries should be developed in this class. 
@@ -74,6 +60,26 @@ For more information about implemented Repository base class please refer to eac
 
 - <a href="https://github.com/blazerroadg/js-frontend-repository/tree/master/src/firestore"> Firestore Repository base </a>
 - <a href="https://github.com/blazerroadg/js-frontend-repository/tree/master/src/azureCosmos"> Azure cosmos and Azure cosmos Gremlin Repository base </a>
+
+```javascript
+
+import { FirestoreRepository } from 'react-native-firesotre-repository/FirestoreRepository';
+import { Todo } from '@/src/models/Todo';
+import { FirestoreEntityMetaData } from 'react-native-firesotre-repository/FirestoreEntityMetaData';
+import { FirestoreEntityMetaDataContext } from 'react-native-firesotre-repository/FirestoreEntityMetaDataContext';
+
+export class TodoRepository extends FirestoreRepository<Todo> {
+  constructor() {
+    super(Todo, new FirestoreEntityMetaData(new FirestoreEntityMetaDataContext()));
+  }
+}
+```
+
+you can find example project : <a href="https://github.com/blazerroadg/js-frontend-repository/tree/master/example/repository">Here</a>
+
+## Service
+For each entity you should add one service class too. Service class is responsible for logic across one entity, for example if you want to fetch Todo with Id = 2 and then change the isDone to true and update the result you should develop the logic of that in this class.
+Service is for logic across one entity, and Repository class is for query of those logic.
 
 ```javascript
 import { ITodoRepository } from '@/src/repositories/interfaces/ITodoRepository';
