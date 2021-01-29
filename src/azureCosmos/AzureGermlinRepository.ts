@@ -1,23 +1,34 @@
-import { nullValue } from 'js-frontend-repository/models/nullValue';
-import { QueryContext } from 'js-frontend-repository/models/QueryContext';
-import { Result } from 'js-frontend-repository/models/Result';
-import { ResultArray } from 'js-frontend-repository/models/ResultArray';
-import { RepositoryHttpBase } from 'js-frontend-repository/RepositoryHttpBase';
-import { FetchParamDefualt, Param } from 'react-native-azure-cosmos-gremlin/germlin';
-import { AzureGermlinEntityMetaData } from './AzureGermlinEntityMetaData';
+import {AzureGermlinEntityMetaData} from './AzureGermlinEntityMetaData';
+import {
+  repositoryHttpBase,
+  IRepositoryHttp,
+} from '../repository/repositoryHttpBase';
 
-export class AzureGermlinRepository<TEntity> extends RepositoryHttpBase<TEntity> {
+const azureGermlinRepository = <TEntity>(): IRepositoryHttp<TEntity> => {
+  const repo: IRepositoryHttp<TEntity> = {
+    ...repositoryHttpBase(),
+  };
+  return repo;
+};
+
+export class AzureGermlaaainRepository<
+  TEntity
+> extends RepositoryHttpBase<TEntity> {
   metaData: AzureGermlinEntityMetaData;
 
-  constructor(entityType: new () => TEntity, metaData: AzureGermlinEntityMetaData) {
+  constructor(
+    entityType: new () => TEntity,
+    metaData: AzureGermlinEntityMetaData,
+  ) {
     super(entityType);
     this.metaData = metaData;
   }
 
   async getById(id: string, options?: any): Promise<Result<TEntity>> {
     const query = `g.V('${id})`;
-    const response = await this.metaData.networking.fetch(new FetchParamDefualt(query,
-      nullValue, id, options?.auth));
+    const response = await this.metaData.networking.fetch(
+      new FetchParamDefualt(query, nullValue, id, options?.auth),
+    );
     const mapped = await this.map(response);
     return this.first(mapped);
   }
@@ -25,16 +36,30 @@ export class AzureGermlinRepository<TEntity> extends RepositoryHttpBase<TEntity>
   async all(options?: any): Promise<ResultArray<TEntity>> {
     const query = `g.V().hasLabel('${this.metaData.context.col}')`;
     const response = await this.metaData.networking.fetch(
-      new FetchParamDefualt(query, undefined as any, this.metaData.context.col, options?.auth),
+      new FetchParamDefualt(
+        query,
+        undefined as any,
+        this.metaData.context.col,
+        options?.auth,
+      ),
     );
     const entities = this.map(response);
     return entities;
   }
 
-  async query(context: QueryContext, options?: any): Promise<ResultArray<TEntity>> {
+  async query(
+    context: QueryContext,
+    options?: any,
+  ): Promise<ResultArray<TEntity>> {
     if (options.actionname) throw Error('options.actionname is not defiend');
-    const response = await this.metaData.networking.fetch(new FetchParamDefualt(context.query,
-      context.parameters, options?.actionname, options?.auth));
+    const response = await this.metaData.networking.fetch(
+      new FetchParamDefualt(
+        context.query,
+        context.parameters,
+        options?.actionname,
+        options?.auth,
+      ),
+    );
     const entities = this.map(response);
     return entities;
   }
@@ -57,7 +82,7 @@ export class AzureGermlinRepository<TEntity> extends RepositoryHttpBase<TEntity>
 
   async update(entity: TEntity, options?: any): Promise<Result<TEntity>> {
     if (options.id) throw Error('options.partitionKey is null or not defiend');
-    let query = 'g.V(\'@id\')';
+    let query = "g.V('@id')";
     const parameters = new Array<Param>();
     parameters.push(new Param('@id', options.id));
     Object.keys(entity).forEach((key) => {

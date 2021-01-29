@@ -1,12 +1,6 @@
-import Param from './Param';
+import {Param} from './Param';
 
-export default class QueryContext {
+export interface QueryContext {
   query: string;
-
-  parameters: Array<Param>
-
-  constructor(query: string, parameters: Array<Param>) {
-    this.query = query;
-    this.parameters = parameters;
-  }
+  parameters: Array<Param>;
 }
