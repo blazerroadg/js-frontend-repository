@@ -1,87 +1,93 @@
-import { Result } from 'js-frontend-repository/models/Result';
-import { ResultArray } from 'js-frontend-repository/models/ResultArray';
-import { RepositoryBase } from 'js-frontend-repository/RepositoryBase';
-import { cache } from 'react-native-fetch-cache/cacheResolver';
+import {cache} from 'react-native-fetch-cache/cacheResolver';
 import firestore from '@react-native-firebase/firestore';
-import { QueryContext } from 'js-frontend-repository/models/QueryContext';
-import { FirestoreEntityMetaData } from './FirestoreEntityMetaData';
+import {IResult} from 'js-frontend-repository/models/interfaces/IResult';
+import {nullValue} from '@/constans';
+import {IRepository} from 'js-frontend-repository/interfaces/IRepository';
+import {repositoryBase} from 'js-frontend-repository/repositoryBase';
+import QueryContext from 'js-frontend-repository/models/QueryContext';
 
-export class FirestoreRepository<TEntity> extends RepositoryBase<TEntity> {
-    metaData: FirestoreEntityMetaData;
-
-    constructor(entityType: new () => TEntity, metaData: FirestoreEntityMetaData) {
-      super(entityType);
-      this.metaData = metaData;
-    }
-
-    cacheResponse(): ResultArray<TEntity> {
-      const result = new ResultArray<TEntity>();
-      result.status = 304;
-      return result;
-    }
-
-    async getById(id: string): Promise<Result<TEntity>> {
-      const isCached = cache(`${this.metaData.context.collectionName}::${id}`, undefined);
-      if (isCached) return this.first(this.cacheResponse());
-      const fire = await firestore().collection(this.metaData.context.collectionName).doc(id).get();
-      const entity = await this.map(fire);
-      return this.first(entity);
-    }
-
-    async all(): Promise<ResultArray<TEntity>> {
-      const isCached = cache(`${this.metaData.context.collectionName}::all`, undefined);
-      if (isCached) return this.cacheResponse();
-      const fire = await firestore().collection(this.metaData.context.collectionName).get();
-      const entity = await this.map(fire.docs);
+export const firestoreRepository = <TEntity>(
+  col: string,
+): IRepository<TEntity> => {
+  const cacheResponse = <TEntity>(): IResult<TEntity> => {
+    const result: IResult<TEntity> = {
+      status: 304,
+      entity: nullValue,
+      entities: nullValue,
+      message: nullValue,
+      ok: true,
+    };
+    return result;
+  };
+  const repo: IRepository<TEntity> = {
+    ...repositoryBase(),
+    getById: async (id: string) => {
+      const isCached = cache(`${col}::${id}`, undefined);
+      if (isCached) return repo.first(cacheResponse());
+      const fire = await firestore().collection(col).doc(id).get();
+      const entity = await repo.map(fire);
+      return repo.first(entity);
+    },
+    all: async () => {
+      const isCached = cache(`${col}::all`, undefined);
+      if (isCached) return cacheResponse();
+      const fire = await firestore().collection(col).get();
+      const entity = await repo.map(fire.docs);
       return entity;
-    }
-
-    async query(context: QueryContext): Promise<ResultArray<TEntity>> {
-      const query = firestore().collection(this.metaData.context.collectionName);
+    },
+    query: async (context: QueryContext) => {
+      const query = firestore().collection(col);
       context.parameters.forEach((t) => {
         const oper = t.name.split(':');
         query.where(oper[0], oper[1] as any, t.value);
       });
       const fire = await query.get();
-      const entities = await this.map(fire.docs);
+      const entities = await repo.map(fire.docs);
       return entities;
-    }
-
-    async add(entity: TEntity, options?: any): Promise<Result<TEntity>> {
+    },
+    add: async (entity: TEntity, options?: any) => {
       if (!options.id) throw Error('options.id is null or not defiend');
-      await firestore()
-        .collection(this.metaData.context.collectionName)
-        .doc(options.id)
-        .set(entity);
-      const result = new Result<TEntity>();
-      result.entity = entity;
+      await firestore().collection(col).doc(options.id).set(entity);
+      const result: IResult<TEntity> = {
+        entity: entity,
+        message: 'entity added',
+        ok: true,
+        status: 200,
+      };
       return result;
-    }
-
-    async update(entity: TEntity, options?: any): Promise<Result<TEntity>> {
+    },
+    update: async (entity: TEntity, options?: any) => {
       if (!options.id) throw Error('options.id is null or not defiend');
-      await firestore()
-        .collection(this.metaData.context.collectionName)
-        .doc(options.id)
-        .update(entity);
-      const result = new Result<TEntity>();
-      result.entity = entity;
+      await firestore().collection(col).doc(options.id).update(entity);
+      const result: IResult<TEntity> = {
+        entity: entity,
+        message: 'entity updated',
+        ok: true,
+        status: 200,
+      };
       return result;
-    }
-
-    async handelMap(response: any): Promise<ResultArray<TEntity>> {
-      const result = new ResultArray<TEntity>();
+    },
+    map: async (response: any) => {
       if (!response) {
-        result.status = response.status;
-        result.ok = response.ok;
-        result.message = JSON.stringify(response);
-        return result;
+        const notResult: IResult<TEntity> = {
+          status: response.status,
+          ok: response.ok,
+          message: JSON.stringify(response),
+          entity: nullValue,
+          entities: nullValue,
+        };
+        return notResult;
       }
-      const mapped = await this.innerMap(response);
-      result.ok = true;
-      result.status = 200;
-      result.message = '';
-      result.entity = mapped;
+      const mapped: Array<TEntity> = JSON.parse(response);
+      const result: IResult<TEntity> = {
+        status: 200,
+        ok: true,
+        message: 'OK',
+        entities: mapped,
+        entity: nullValue,
+      };
       return result;
-    }
-}
+    },
+  };
+  return repo;
+};

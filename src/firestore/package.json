@@ -1,6 +1,6 @@
 {
   "name": "react-native-firesotre-repository",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -17,9 +17,9 @@
   },
   "homepage": "https://github.com/blazerroad/js-frontend-repository/firestore#readme",
   "dependencies": {
-    "@react-native-firebase/app": "^8.4.7",
-    "@react-native-firebase/firestore": "^10.1.0",
-    "js-frontend-repository": "^1.0.3",
+    "@react-native-firebase/app": "latest",
+    "@react-native-firebase/firestore": "latest",
+    "js-frontend-repository": "latest",
     "react-native-fetch-cache": "^1.0.1"
   },
   "devDependencies": {
