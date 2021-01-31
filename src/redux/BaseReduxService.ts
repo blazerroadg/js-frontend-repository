@@ -1,42 +1,41 @@
-import { IRepository } from 'js-frontend-repository/interfaces/IRepository';
-import { IResult } from 'js-frontend-repository/models/interfaces/IResult';
-import { IReduxService } from './IReduxService';
+import {IRepository} from 'js-frontend-repository/interfaces/IRepository';
+import {IResult} from 'js-frontend-repository/models/interfaces/IResult';
+import {IReduxService} from './IReduxService';
 
-/* eslint indent: "off" */
-export class BaseReduxService<TEntity, TRepository extends IRepository<TEntity>>
-implements IReduxService<TEntity> {
-    repository: TRepository;
-
-    reduxDispatch: any;
-
-    constructor(private RepositoryType: new () => TRepository, dispatch: any) {
-      this.repository = new this.RepositoryType();
-      this.reduxDispatch = dispatch;
-    }
-
-    dispatch(actionName: string, result: IResult<TEntity>): void {
+export const baseReduxService = <
+  TEntity,
+  TRepository extends IRepository<TEntity>
+>(
+  RepositoryType: new () => TRepository,
+  dispatch: any,
+): IReduxService<TEntity> => {
+  const repository = new RepositoryType();
+  const service: IReduxService<TEntity> = {
+    dispatch: (actionName: string, result: IResult<TEntity>): void => {
       if (result.status === 304) return;
       if (!result.ok) {
         throw new Error('There is some thing wrong from API');
       }
-      this.reduxDispatch({ type: actionName, entity: result.entity });
-    }
-
-    async getById(actionName: string, id: string, options?: any): Promise<void> {
-      const response = await this.repository.getById(id, options);
-      this.dispatch(actionName, response);
-    }
-
-    async all(actionName: string, options?: any): Promise<void> {
-      const response = await this.repository.all(options);
-      this.dispatch(actionName, response);
-    }
-
-    async add(entity: TEntity, options?: any): Promise<void> {
-      await this.repository.add(entity, options);
-    }
-
-    async update(entity: TEntity, options?: any): Promise<void> {
-      await this.repository.update(entity, options);
-    }
-}
+      dispatch({type: actionName, entity: result.entity});
+    },
+    getById: async (
+      actionName: string,
+      id: string,
+      options?: any,
+    ): Promise<void> => {
+      const response = await repository.getById(id, options);
+      dispatch(actionName, response);
+    },
+    all: async (actionName: string, options?: any): Promise<void> => {
+      const response = await repository.all(options);
+      dispatch(actionName, response);
+    },
+    add: async (entity: TEntity, options?: any): Promise<void> => {
+      await repository.add(entity, options);
+    },
+    update: async (entity: TEntity, options?: any): Promise<void> => {
+      await repository.update(entity, options);
+    },
+  };
+  return service;
+};

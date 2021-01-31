@@ -1,18 +1,20 @@
-import { BaseReducer } from './BaseReducer';
+import {baseReducer, IReducerProvider} from './baseReducer';
 
-export class DefaultReducer<TState> extends BaseReducer<TState> {
-  constructor(state: TState) {
-    super(state, []);
-    this.fillAcceptable(state);
-  }
-
-  fillAcceptable(state: TState) {
+export const defaultReducer = <TState>(
+  state: TState,
+): IReducerProvider<TState> => {
+  const fillAcceptable = (state: TState): Array<string> => {
+    const acceptableActions: Array<string> = [];
     Object.keys(state).forEach((key) => {
-      this.acceptableActions.push(key);
+      acceptableActions.push(key);
     });
-  }
-
-  reduce(state: TState, action: any): TState {
-    return { ...state, [action.type]: action.entity };
-  }
-}
+    return acceptableActions;
+  };
+  const provider: IReducerProvider<TState> = {
+    ...baseReducer(state, fillAcceptable(state)),
+    reduce: (state: TState, action: any): TState => {
+      return {...state, [action.type]: action.entity};
+    },
+  };
+  return provider;
+};
