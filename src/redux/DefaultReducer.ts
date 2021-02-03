@@ -12,11 +12,16 @@ export const defaultReducer = <TState>(
   };
   const provider = baseReducer(state, fillAcceptable(state));
   provider.reduce = (state: TState, action: any): TState => {
-    const spl = action.type.split('.');
-    if (spl.length == 1) {
+    const nested =   action.type.indexOf('.') > -1 
+    if(!nested){
       return {...state, [action.type]: action.entity};
     }
-    return {...state, [spl[0]]: {...spl[0], [spl[1]]: action.entity}};
-  };
+    debugger;
+    const spl = action.type.split('.')
+    const ex = (state as any)[spl[0]];
+    const result =  {...state, [spl[0]]: {...ex,[spl[1]]:action.entity}};
+    return result;
+
+    };
   return provider;
 };

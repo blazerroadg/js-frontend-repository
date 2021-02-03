@@ -21,7 +21,8 @@ export const baseReducer = <TState>(
     },
     acceptableActions: acceptableActions,
     handleRequest: (state: TState, action: any): TState => {
-      if (reducer.isAcceptable(action.type)) {
+      const spl =   action.type.indexOf('.') > -1 ? action.type.split('.')[0] : action.type
+      if (reducer.isAcceptable(spl)) {
         return reducer.reduce(state, action);
       }
       if (reducer.successor) {
