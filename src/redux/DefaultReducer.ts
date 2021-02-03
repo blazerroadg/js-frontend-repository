@@ -10,11 +10,13 @@ export const defaultReducer = <TState>(
     });
     return acceptableActions;
   };
-  const provider: IReducerProvider<TState> = {
-    ...baseReducer(state, fillAcceptable(state)),
-    reduce: (state: TState, action: any): TState => {
+  const provider = baseReducer(state, fillAcceptable(state));
+  provider.reduce = (state: TState, action: any): TState => {
+    const spl = action.type.split('.');
+    if (spl.length == 1) {
       return {...state, [action.type]: action.entity};
-    },
+    }
+    return {...state, [spl[0]]: {...spl[0], [spl[1]]: action.entity}};
   };
   return provider;
 };
