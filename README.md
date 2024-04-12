@@ -1,3 +1,55 @@
+// In your Utils class
+
+public class Utils {
+
+    // ... other utility methods ...
+
+    public static boolean shouldExcludeMessage(ConsumerRecord<String, PushProcessorEvent> record, InboxConfigs inboxConfigs) {
+        // Extracted logic from the InboxExcludeMessagePredicate.test method
+        PushProcessorEvent pushProcessorEvent = record.value();
+        JSONObject customPayload = null;
+        if (pushProcessorEvent.getData() != null && pushProcessorEvent.getData().get(Constants.CUSTOM_PAYLOAD_KEY) != null) {
+            customPayload = new JSONObject(pushProcessorEvent.getData().get(Constants.CUSTOM_PAYLOAD_KEY));
+        }
+
+        List<String> allowedAppUUIDList = inboxConfigs.getAppUUID();
+        
+        String msgId = Arrays.stream(record.headers().toArray())
+                            .filter(h -> h.key().equals(Constants.MESSAGE_ID_HEADER))
+                            .map(h -> new String(h.value(), StandardCharsets.UTF_8))
+                            .findFirst()
+                            .orElse(null);
+
+        if (record.value().getAudience().size() == 0) {
+            LOGGER.info("Audience List is empty: {} for messageId: {}", record.value().getAudience().size(), msgId);
+            return false;
+        }
+
+        if (!allowedAppUUIDList.contains(pushProcessorEvent.getAppUUID())) {
+            LOGGER.info("App UUID doesn't belong to ME@Walmart for messageId: {}", pushProcessorEvent.getAppUUID(), msgId);
+            return false;
+        }
+
+        if (msgId == null) {
+            LOGGER.info("MessageId is null for Record: {} for messageId: {}", record.value(), msgId);
+            return false;
+        }
+
+        if (customPayload != null && customPayload.has(Constants.EXCLUDE_KEY) && customPayload.getBoolean(Constants.EXCLUDE_KEY)) {
+            LOGGER.info("Message Excluded for Record: {} with customPayload: {}", record.value(), customPayload, msgId);
+            return false;
+        }
+
+        return true;
+    }
+
+}
+
+
+
+
+
+
 # js-frontend-repository
   The Repository pattern is a well-documented way of working with a data source. In this library I used this pattern for manage API calls from javascript base frontend applications
 
