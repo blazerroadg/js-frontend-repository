@@ -1,3 +1,6 @@
+import static org.mockito.Mockito.*;
+
+ConsumerRecord<String, PushProcessorEvent> mockRecord = mock(new TypeToken<ConsumerRecord<String, PushProcessorEvent>>(){}.getRawType());
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
