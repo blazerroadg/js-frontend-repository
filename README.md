@@ -1,3 +1,63 @@
+
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
+
+import org.json.JSONObject;
+import org.junit.Test;
+
+public class MessageStoreUtilTest {
+
+    @Test
+    public void testShouldStoreMessage_WithMatchingAppKey_ReturnsTrue() {
+        // Arrange
+        String incomingAppKey = "appKey";
+        PushProcessorEvent event = mock(PushProcessorEvent.class);
+        when(event.getAppUID()).thenReturn(incomingAppKey);
+        when(event.getData()).thenReturn(null);
+        
+        // Act
+        boolean result = MessageStoreUtil.shouldStoreMessage(incomingAppKey, event);
+
+        // Assert
+        assertTrue(result);
+    }
+
+    @Test
+    public void testShouldStoreMessage_WithCustomDataAndMatchingWidgetId_ReturnsTrue() {
+        // Arrange
+        JSONObject customData = new JSONObject();
+        customData.put("WIDGET_ID_KEY", "expectedWidgetId");
+        
+        PushProcessorEvent event = mock(PushProcessorEvent.class);
+        when(event.getData()).thenReturn(customData);
+        when(event.getAppUID()).thenReturn("differentAppKey");
+        
+        // Act
+        boolean result = MessageStoreUtil.shouldStoreMessage("appKey", event);
+
+        // Assert
+        assertTrue(result);
+    }
+
+    @Test
+    public void testShouldStoreMessage_WithNonMatchingConditions_ReturnsFalse() {
+        // Arrange
+        PushProcessorEvent event = mock(PushProcessorEvent.class);
+        when(event.getAppUID()).thenReturn("differentAppKey");
+        when(event.getData()).thenReturn(null);
+        
+        // Act
+        boolean result = MessageStoreUtil.shouldStoreMessage("appKey", event);
+
+        // Assert
+        assertFalse(result);
+    }
+    
+    // Additional tests can be added to cover other branches and edge cases
+}
+
+
+
 # js-frontend-repository
   The Repository pattern is a well-documented way of working with a data source. In this library I used this pattern for manage API calls from javascript base frontend applications
 
