@@ -1,3 +1,8 @@
+
+Map<String, String> customData = new HashMap<>();
+        customData.put("CUSTOM_DATA_KEY", "{\"WIDGET_ID_KEY\":\"expectedWidgetId\"}");
+
+
 import static org.mockito.Mockito.*;
 
 ConsumerRecord<String, PushProcessorEvent> mockRecord = mock(new TypeToken<ConsumerRecord<String, PushProcessorEvent>>(){}.getRawType());
